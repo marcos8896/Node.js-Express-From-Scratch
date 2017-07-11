@@ -32,7 +32,11 @@ app.set('view engine', 'pug');
 app.use(bodyParser.urlencoded({ extended: false }))
 
 // parse application/json
-app.use(bodyParser.json())
+app.use(bodyParser.json());
+
+
+//Set public folder
+app.use(express.static(path.join(__dirname, 'public')));
 
 
 //Home route
@@ -54,6 +58,16 @@ app.get('/articles/add', (req, res) =>{
     title: 'Add article'
   });
 });
+
+//Get single article
+app.get('/article/:id', (req, res) => {
+  Article.findById(req.params.id, (err, article) => {
+    res.render('article', {
+      article
+    });
+  })
+});
+
 
 //Catch Submit POST Route
 app.post('/articles/add', (req, res) =>{
