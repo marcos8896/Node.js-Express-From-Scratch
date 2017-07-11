@@ -38,7 +38,7 @@ app.use(bodyParser.json());
 //Set public folder
 app.use(express.static(path.join(__dirname, 'public')));
 
-
+//---------------------------GET REQUESTS-------------------------
 //Home route
 app.get('/', (req, res) => {
   Article.find({}, (err, articles) => {
@@ -46,7 +46,7 @@ app.get('/', (req, res) => {
       console.log(err);
     } else{
       res.render('index', {
-        title: 'Hello',
+        title: 'Index',
         articles: articles
       });
     }
@@ -68,8 +68,18 @@ app.get('/article/:id', (req, res) => {
   })
 });
 
+//Get single article
+app.get('/article/edit/:id', (req, res) => {
+  Article.findById(req.params.id, (err, article) => {
+    res.render('edit_article', {
+      title: 'Edit Article',
+      article
+    });
+  })
+});
 
-//Catch Submit POST Route
+//---------------------------POST REQUESTS-------------------------
+//Catch Submit POST Route in order to add an new article
 app.post('/articles/add', (req, res) =>{
   let article = new Article();
   article.title = req.body.title;
@@ -86,6 +96,40 @@ app.post('/articles/add', (req, res) =>{
   });
 
 });
+
+//Catch Submit POST Route in order to edit an article.
+app.post('/articles/edit/:id', (req, res) =>{
+  let article = {}
+  article.title = req.body.title;
+  article.author = req.body.author;
+  article.body = req.body.body;
+
+  let query = {_id:req.params.id}
+
+  Article.update(query, article, (err) => {
+    if (err) {
+        console.log(err);
+        return;
+    } else{
+      res.redirect('/article/'+req.params.id);
+    }
+  });
+
+});
+
+//---------------------------DELETE REQUESTS-------------------------
+//Delete an article
+app.delete('/article/:id', (req, res) => {
+  let query = {_id:req.params.id};
+
+  Article.remove(query, (err) => {
+    if (err) {
+      console.log(err);
+    }
+    res.send('Success');
+  })
+});
+
 
 app.listen(4000, () => {
   console.log('Server started on port 4000');
