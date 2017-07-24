@@ -89,9 +89,13 @@ app.get('/', (req, res) => {
 
 //---------------------Route files---------------------!
 let articles = require('./routes/articles');
+let users = require('./routes/users');
 
 //For anything that goes to /articles is going to articles file.
 app.use('/articles', articles);
+
+//For anything that goes to /users is going to users file.
+app.use('/users', users);
 //-----------------------------------------------------!
 
 app.listen(4000, () => {
