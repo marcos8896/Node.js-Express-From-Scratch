@@ -2,19 +2,24 @@ const express = require('express');
 const router = express.Router();
 
 
-//Bring in article model.
+//Bring in models.
 let Article = require('../models/article');
+let User = require('../models/user');
 
 //---------------------------GET REQUESTS-------------------------
-router.get('/add', (req, res) =>{
+router.get('/add', ensureAuthenticated, (req, res) =>{
   res.render('add_article', {
     title: 'Add article'
   });
 });
 
-//Get single article
-router.get('/edit/:id', (req, res) => {
+//Load Edit Form
+router.get('/edit/:id', ensureAuthenticated, (req, res) => {
   Article.findById(req.params.id, (err, article) => {
+    if (article.author != req.user._id) {
+      req.flash('danger', 'Not Authorized');
+      res.redirect('/');
+    }
     res.render('edit_article', {
       title: 'Edit Article',
       article
@@ -24,9 +29,9 @@ router.get('/edit/:id', (req, res) => {
 
 //---------------------------POST REQUESTS-------------------------
 //Catch Submit POST Route in order to add an new article
-router.post('/add', (req, res) =>{
+router.post('/add', ensureAuthenticated, (req, res) =>{
   req.checkBody('title', 'Title is required').notEmpty();
-  req.checkBody('author', 'Author is required').notEmpty();
+  // req.checkBody('author', 'Author is required').notEmpty();
   req.checkBody('body', 'Body is required').notEmpty();
 
   //Get errors
@@ -40,7 +45,7 @@ router.post('/add', (req, res) =>{
   }else{
     let article = new Article();
     article.title = req.body.title;
-    article.author = req.body.author;
+    article.author = req.user._id;
     article.body = req.body.body;
 
     article.save((err) => {
@@ -57,7 +62,7 @@ router.post('/add', (req, res) =>{
 });
 
 //Catch Submit POST Route in order to edit an article.
-router.post('/edit/:id', (req, res) =>{
+router.post('/edit/:id', ensureAuthenticated, (req, res) =>{
   let article = {}
   article.title = req.body.title;
   article.author = req.body.author;
@@ -79,25 +84,54 @@ router.post('/edit/:id', (req, res) =>{
 
 //---------------------------DELETE REQUESTS-------------------------
 //Delete an article
-router.delete('/:id', (req, res) => {
+router.delete('/:id', ensureAuthenticated,  (req, res) => {
+
+  if (!req.user._id) {
+    res.status(500).send();
+  }
+
   let query = {_id:req.params.id};
 
-  Article.remove(query, (err) => {
-    if (err) {
-      console.log(err);
+  Article.findById(req.params.id, (err, article) => {
+    if (article.author != req.user._id) {
+      res.status(500).send();
+    } else {
+      Article.remove(query, (err) => {
+
+        if (err) {
+          console.log(err);
+        }
+        res.send('Success');
+      });
     }
-    res.send('Success');
-  })
+  });
 });
 
 
 //Get single article
-router.get('/:id', (req, res) => {
+router.get('/:id', ensureAuthenticated, (req, res) => {
   Article.findById(req.params.id, (err, article) => {
-    res.render('article', {
-      article
+
+    User.findById(article.author, (err, user) => {
+
+      res.render('article', {
+        article,
+        author: user.name
+      });
+
     });
-  })
+  });
 });
+
+//Access Control
+function ensureAuthenticated(req, res, next){
+    if (req.isAuthenticated()){
+      return next();
+    } else{
+      req.flash('danger', 'Please, login.');
+      res.redirect('/users/login');
+    }
+}
+
 
 module.exports = router;
